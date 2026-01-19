@@ -2,46 +2,73 @@ from fastapi import FastAPI, HTTPException
 from mock_data import FLIGHT_DATA
 from calculator import calculate_daily_passengers
 import os
+from pydantic import BaseModel
+from typing import Dict, Any
 
-app = FastAPI(
-    title="Airport Usage MCP Server",
-    description="Daily airport passenger estimation",
-    version="1.0.0"
-)
+app = FastAPI(title="Airport MCP Server")
 
-@app.post("/get_daily_airport_usage")
-def get_daily_airport_usage(payload: dict):
-    airport_code = payload.get("airport_code")
-    date = payload.get("date")
+# ---------- MCP MODELS ----------
 
-    if not airport_code or not date:
-        raise HTTPException(
-            status_code=400,
-            detail="airport_code and date are required"
-        )
+class MCPInitializeRequest(BaseModel):
+    client_name: str | None = None
 
-    key = (airport_code, date)
-    flights = FLIGHT_DATA.get(key)
+class MCPToolCallRequest(BaseModel):
+    name: str
+    arguments: Dict[str, Any]
 
-    if not flights:
-        return {
-            "airport_code": airport_code,
-            "date": date,
-            "estimated_passengers": 0,
-            "confidence": 0.3,
-            "message": "No flight data available"
-        }
+# ---------- MCP ENDPOINTS ----------
 
-    stats = calculate_daily_passengers(flights)
-
+@app.post("/mcp/initialize")
+def mcp_initialize(payload: MCPInitializeRequest):
     return {
-        "airport_code": airport_code,
-        "date": date,
-        "estimated_passengers": stats["total"],
-        "confidence": 0.85,
-        "breakdown": {
-            "arrivals": stats["arrivals"],
-            "departures": stats["departures"],
-            "flight_count": len(flights)
+        "protocol_version": "1.0",
+        "server_name": "airport-mcp",
+        "capabilities": {
+            "tools": True
         }
     }
+
+@app.post("/mcp/tools/list")
+def mcp_tools_list():
+    return {
+        "tools": [
+            {
+                "name": "get_daily_airport_usage",
+                "description": "Returns estimated daily airport passenger usage",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "airport_code": {"type": "string"},
+                        "date": {"type": "string"}
+                    },
+                    "required": ["airport_code", "date"]
+                }
+            }
+        ]
+    }
+
+@app.post("/mcp/tools/call")
+def mcp_tools_call(payload: MCPToolCallRequest):
+    if payload.name != "get_daily_airport_usage":
+        return {
+            "error": f"Unknown tool: {payload.name}"
+        }
+
+    airport_code = payload.arguments.get("airport_code")
+    date = payload.arguments.get("date")
+
+    # 🔹 burada SENİN MEVCUT LOGIC'İN çağrılır
+    estimated = 5000  # örnek
+
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": (
+                    f"{airport_code} airport on {date} "
+                    f"is expected to serve approximately {estimated} passengers."
+                )
+            }
+        ]
+    }
+
