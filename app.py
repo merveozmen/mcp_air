@@ -1,27 +1,24 @@
+# app.py
 from fastapi import FastAPI, HTTPException
-from mock_data import FLIGHT_DATA
-from calculator import calculate_daily_passengers
-import os
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any
 
-app = FastAPI(title="Airport MCP Server")
-
-from fastapi.middleware.cors import CORSMiddleware
-
+# ---------------------
+# FastAPI instance
+# ---------------------
 app = FastAPI(title="Airport MCP Server")
 
 # ---------- CORS Middleware ----------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Tüm domainler için izin, test için ideal
+    allow_origins=["*"],  # test / orchestrate domain
     allow_credentials=True,
-    allow_methods=["*"],  # GET, POST, OPTIONS, PUT...
-    allow_headers=["*"],  # Content-Type, Authorization vs.
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ---------- MCP MODELS ----------
-
 class MCPInitializeRequest(BaseModel):
     client_name: str | None = None
 
@@ -29,7 +26,9 @@ class MCPToolCallRequest(BaseModel):
     name: str
     arguments: Dict[str, Any]
 
-# ---------- MCP ENDPOINTS ----------
+# ---------------------
+# MCP ENDPOINTS
+# ---------------------
 
 @app.post("/mcp/initialize")
 def mcp_initialize(payload: MCPInitializeRequest):
@@ -61,19 +60,24 @@ def mcp_tools_list():
         ]
     }
 
-
 @app.post("/mcp/tools/call")
 def mcp_tools_call(payload: MCPToolCallRequest):
     if payload.name != "get_daily_airport_usage":
-        return {
-            "error": f"Unknown tool: {payload.name}"
-        }
+        return {"error": f"Unknown tool: {payload.name}"}
 
     airport_code = payload.arguments.get("airport_code")
     date = payload.arguments.get("date")
 
-    # 🔹 burada SENİN MEVCUT LOGIC'İN çağrılır
-    estimated = 5000  # örnek
+    if not airport_code or not date:
+        raise HTTPException(
+            status_code=400,
+            detail="airport_code and date are required"
+        )
+
+    # ---------------------
+    # Örnek hesaplama (sonradan gerçek logic ekleyebilirsin)
+    # ---------------------
+    estimated_passengers = 5000  # örnek sabit değer
 
     return {
         "content": [
@@ -81,9 +85,13 @@ def mcp_tools_call(payload: MCPToolCallRequest):
                 "type": "text",
                 "text": (
                     f"{airport_code} airport on {date} "
-                    f"is expected to serve approximately {estimated} passengers."
+                    f"is expected to serve approximately {estimated_passengers} passengers."
                 )
             }
         ]
     }
 
+# ---------- Optional ping test ----------
+@app.get("/ping", tags=["debug"])
+def ping():
+    return {"ping": "pong"}
