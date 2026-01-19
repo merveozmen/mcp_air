@@ -7,6 +7,19 @@ from typing import Dict, Any
 
 app = FastAPI(title="Airport MCP Server")
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Airport MCP Server")
+
+# ---------- CORS Middleware ----------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Tüm domainler için izin, test için ideal
+    allow_credentials=True,
+    allow_methods=["*"],  # GET, POST, OPTIONS, PUT...
+    allow_headers=["*"],  # Content-Type, Authorization vs.
+)
+
 # ---------- MCP MODELS ----------
 
 class MCPInitializeRequest(BaseModel):
