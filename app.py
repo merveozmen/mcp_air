@@ -47,18 +47,20 @@ def mcp_tools_list():
         "tools": [
             {
                 "name": "get_daily_airport_usage",
+                "title": "Daily Airport Usage Estimation",
                 "description": "Returns estimated daily airport passenger usage",
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "airport_code": {"type": "string"},
-                        "date": {"type": "string"}
+                        "airport_code": {"type": "string", "title": "Airport Code"},
+                        "date": {"type": "string", "title": "Date (YYYY-MM-DD)"}
                     },
                     "required": ["airport_code", "date"]
                 }
             }
         ]
     }
+
 
 @app.post("/mcp/tools/call")
 def mcp_tools_call(payload: MCPToolCallRequest):
